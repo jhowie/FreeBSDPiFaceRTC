@@ -11,5 +11,5 @@ clean:
 	
 install:	rtcdate
 	install -d /usr/local/bin -o root -g wheel -v
-	install -o root -g wheel -c -v rtcdate /usr/local/bin/
+	install -o root -g wheel -c -m 4755 -v rtcdate /usr/local/bin/
 	

@@ -128,7 +128,7 @@ int main (int argc, char **argv)
     bool bUseComputerClockToSetRTC = false, bSetComputerClockFromRTC = false,
             bDisplayPowerFail = false, bDisplayPowerRestore = false,
             bProcessOptions = false, bDisplayDateTimeAsDateInput = false,
-            bReadNVRAM = false, bWriteNVRAM = false;
+            bReadNVRAM = false, bWriteNVRAM = false, bMustBeRoot = false;
 
     // Go through the command line arguments
     
@@ -150,6 +150,8 @@ int main (int argc, char **argv)
             // The user wants us to use the clock of the computer to set the RTC
             
             bUseComputerClockToSetRTC = true;
+            bMustBeRoot = true;                     // User must really be root to perform this action
+            break;
                 
         case 'd':
             // The user wants us to display the date in a format suitable as input to the date command
@@ -179,30 +181,35 @@ int main (int argc, char **argv)
                 
             bProcessOptions = true;
             szOptions = optarg;
+            bMustBeRoot = true;                     // User must really be root to perform this action
             break;
                 
         case 'p':
             // The user wants the powerfail time
                 
             bDisplayPowerFail = true;
+            bMustBeRoot = true;                     // User must really be root to perform this action
             break;
                 
         case 'r':
             // The user wants to display the NVRAM contents
                 
             bReadNVRAM = true;
+            bMustBeRoot = true;                     // User must really be root to perform this action
             break;
             
         case 's':
             // The user wants to set the computer clock from the RTC
             
             bSetComputerClockFromRTC = true;
+            bMustBeRoot = true;                     // User must really be root to perform this action
             break;    
                 
         case 'u':
             // The user wants the time the power was restored at
                 
             bDisplayPowerRestore = true;
+            bMustBeRoot = true;                     // User must really be root to perform this action
             break;
                 
         case 'w':
@@ -210,6 +217,7 @@ int main (int argc, char **argv)
                 
             szNVRAMContents = optarg;
             bWriteNVRAM = true;
+            bMustBeRoot = true;                     // User must really be root to perform this action
             break;
                 
         default:
@@ -225,6 +233,24 @@ int main (int argc, char **argv)
     
     argc -= optind;
     argv += optind;
+
+    // Check to see if we must be root to proceed. The utility runs as suid root so users
+    // can query the clock, but most operations require you to actually be root. We set the
+    // boolean bMustBeRoot when parsing the command line where the operation requires the
+    // user to be root. Here we check if the boolean is set, or if there are remaining arguments
+    // on the command line (we assume there is one, and it is a date/time the user wants to set
+    // the clock to).
+    
+    if ((bMustBeRoot == true) || (argc >= 1)) {
+        // Check that we really are root
+        
+        if (getuid () != 0) {
+            // We are not running as root. Display and error message and exit
+            
+            (void) fprintf (stderr, "You must be root to perform action(s).\n");
+            exit (1); 
+        }
+    }    
     
     // Open the bus device
     
